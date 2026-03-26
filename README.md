@@ -1,20 +1,22 @@
 # memark
 
-Local Markdown memory system for AI agents.
+Local memory system for Claude CLI and Codex CLI.
 
-Memark stores long-term memory in plain Markdown files and is designed to run automatically through Claude CLI hooks.
+Memark stores long-term memory in plain Markdown files and is designed to run automatically through Claude CLI / Codex CLI hooks.
 
-## Install (Project Local)
+## Install
 
 ```bash
-git clone https://github.com/Wilder1222/memark.git .memark
-node ./.memark/bin/cli.js init
+# Project-level install (recommended)
+npx github:Wilder1222/memark install
 ```
 
-- The first command vendors memark into the current project.
-- The second command initializes the `memory/` workspace.
+What this does automatically:
+- Installs runtime files to `./.memark/`
+- Creates `./memory/` (if missing)
+- Creates or updates `./CLAUDE.md` with required memark prompt block
 
-## Hook-First Workflow (No Manual npm or npx)
+## Hook-First Workflow
 
 In Claude CLI, configure hooks so memory operations run automatically.
 
@@ -99,8 +101,10 @@ Validation rules:
 ## Commands Reference
 
 ```bash
-node ./.memark/bin/cli.js init
-node ./.memark/bin/cli.js init --global
+# one-time project install
+npx github:Wilder1222/memark install
+
+# runtime commands used by hooks
 node ./.memark/bin/cli.js rebuild-index
 node ./.memark/bin/cli.js touch-memory --file user/my-preference.md
 node ./.memark/bin/cli.js session-end --threshold 10

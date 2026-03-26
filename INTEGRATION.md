@@ -1,23 +1,19 @@
-# Agent Integration Guide — Claude CLI Hook Mode
+# Integration Guide — Claude CLI / Codex CLI Hook Mode
 
-Integrate `memark` with Claude CLI hooks so memory is processed automatically.
+Integrate `memark` with Claude CLI / Codex CLI hooks so memory is processed automatically.
 
-## 1. Add memark Source To User Project
+## 1. Install memark
 
 ```bash
-git clone https://github.com/Wilder1222/memark.git .memark
+npx github:Wilder1222/memark install
 ```
 
-This avoids `npm`/`npx` at runtime. Hooks call Node directly:
+This installs runtime files into `./.memark/`, initializes `./memory/`, and injects/updates the memark prompt block in `./CLAUDE.md`.
+
+## 2. Runtime Command Base
 
 ```bash
 node ./.memark/bin/cli.js <command>
-```
-
-## 2. One-Time Initialization
-
-```bash
-node ./.memark/bin/cli.js init
 ```
 
 ## 3. Hook Commands (Automatic)
@@ -64,7 +60,7 @@ esac
 # Memory Hook Policy
 
 - Hooks are configured to run memark automatically.
-- Do not run `npm`/`npx` manually for memory operations.
+- Hooks run memory operations automatically.
 
 Session start: rebuild index and read `memory/MEMORY.md`.
 During work: hook tracks memory reads via `touch-memory`.

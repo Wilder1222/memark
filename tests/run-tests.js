@@ -164,9 +164,37 @@ function testNpmPackDryRun() {
     assert.strictEqual(result.status, 0, `npm pack --dry-run failed: ${result.stdout}\n${result.stderr}`);
 }
 
+function testInstallCreatesDotMemarkAndUpdatesClaudeMd() {
+    const dir = makeTempDir('install');
+
+    const first = runNode(['install'], dir);
+    assert.strictEqual(first.code, 0, `install failed: ${first.combined}`);
+
+    const installedCli = path.join(dir, '.memark', 'bin', 'cli.js');
+    assert(fs.existsSync(installedCli), 'install should place runtime under .memark/bin/cli.js');
+
+    const memoryIndex = path.join(dir, 'memory', 'MEMORY.md');
+    assert(fs.existsSync(memoryIndex), 'install should initialize memory workspace');
+
+    const claudePath = path.join(dir, 'CLAUDE.md');
+    assert(fs.existsSync(claudePath), 'install should create CLAUDE.md when missing');
+
+    const blockStart = '<!-- MEMARK:START -->';
+    let claude = fs.readFileSync(claudePath, 'utf8');
+    assert(claude.includes(blockStart), 'CLAUDE.md should include managed memark block');
+
+    const second = runNode(['install'], dir);
+    assert.strictEqual(second.code, 0, `second install failed: ${second.combined}`);
+
+    claude = fs.readFileSync(claudePath, 'utf8');
+    const occurrences = claude.split(blockStart).length - 1;
+    assert.strictEqual(occurrences, 1, 'install should update CLAUDE.md block in place (no duplicate blocks)');
+}
+
 function run() {
     const tests = [
         ['init skips example memories', testInitSkipsExamples],
+        ['install writes .memark and CLAUDE.md block', testInstallCreatesDotMemarkAndUpdatesClaudeMd],
         ['touch-memory supports both slash styles', testTouchMemorySupportsPosixAndWindowsPath],
         ['session-end triggers maintain by threshold', testSessionEndThresholdTriggersMaintain],
         ['maintain applies bucketed decay', testMaintainBucketDecay],

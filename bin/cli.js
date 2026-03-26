@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { init } = require('../lib/init');
+const { install } = require('../lib/install');
 const { maintain } = require('../lib/maintain');
 const { touchMemory } = require('../lib/touch-memory');
 const { sessionEnd } = require('../lib/session-end');
@@ -11,12 +12,13 @@ const flags = args.slice(1);
 const wantsHelp = !command || command === '--help' || command === '-h' || flags.includes('--help') || flags.includes('-h');
 
 const help = `
-agent-memory — Local Markdown memory system for AI agents
+memark — Local memory system for Claude CLI and Codex CLI
 
 USAGE:
-  npx agent-memory <command> [options]
+  memark <command> [options]
 
 COMMANDS:
+  install           Install memark runtime into ./.memark and update CLAUDE.md
   init              Initialize memory system in ./memory/
   init --global     Initialize in ~/.claude/memory/ (global agent memory)
   maintain          Run manual maintenance (TTL archive, decay, rebuild index)
@@ -33,13 +35,14 @@ OPTIONS:
   --help, -h        Show this help
 
 EXAMPLES:
-  npx agent-memory init                    # project-level memory
-  npx agent-memory init --global           # global agent memory
-  npx agent-memory maintain                # run maintenance on ./memory/
-  npx agent-memory maintain --global       # run maintenance on global memory
-  npx agent-memory rebuild-index --path ./custom/memory
-  npx agent-memory touch-memory --file user/my-preference.md
-  npx agent-memory session-end --threshold 10
+  npx github:Wilder1222/memark install  # install runtime in current project
+  memark init                    # project-level memory
+  memark init --global           # global agent memory
+  memark maintain                # run maintenance on ./memory/
+  memark maintain --global       # run maintenance on global memory
+  memark rebuild-index --path ./custom/memory
+  memark touch-memory --file user/my-preference.md
+  memark session-end --threshold 10
 `;
 
 if (wantsHelp) {
@@ -57,6 +60,9 @@ const thresholdIdx = flags.indexOf('--threshold');
 const thresholdArg = thresholdIdx !== -1 ? parseInt(flags[thresholdIdx + 1], 10) : null;
 
 switch (command) {
+    case 'install':
+        install({ force: isForce });
+        break;
     case 'init':
         init({ global: isGlobal, force: isForce, customPath });
         break;
