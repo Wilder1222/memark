@@ -1,5 +1,5 @@
 {
-    "name": "agent-memory",
+    "name": "memark",
     "version": "1.0.0",
     "description": "Local Markdown memory system for AI agents — pure Markdown, zero dependencies",
     "keywords": [
@@ -12,8 +12,12 @@
     ],
     "author": "",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Wilder1222/memark.git"
+    },
     "bin": {
-        "agent-memory": "./bin/cli.js"
+        "memark": "./bin/cli.js"
     },
     "files": [
         "bin/",

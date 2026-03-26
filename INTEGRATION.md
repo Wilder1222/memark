@@ -1,116 +1,74 @@
-# Agent Integration Guide — Quick Reference
+# Agent Integration Guide — Claude CLI Hook Mode
 
-Integrate `agent-memory` into your AI agent workflow for cross-session persistent memory.
+Integrate `memark` with Claude CLI hooks so memory is processed automatically.
 
-## Session Lifecycle
+## 1. Add memark Source To User Project
 
-Add these commands to your agent's workflow:
-
-### 1. Session Start
 ```bash
-npx agent-memory rebuild-index
+git clone https://github.com/Wilder1222/memark.git .memark
 ```
-Then read:
-- `memory/MEMORY.md` (dynamic index)
-- `memory/AGENT-INSTRUCTIONS.md` (protocol)
 
-### 2. After Reading Memory
+This avoids `npm`/`npx` at runtime. Hooks call Node directly:
+
 ```bash
-npx agent-memory touch-memory --file memory/<type>/<name>.md
+node ./.memark/bin/cli.js <command>
 ```
-Updates `last_accessed` and `access_count`.
 
-### 3. Session End
+## 2. One-Time Initialization
+
 ```bash
-npx agent-memory session-end
+node ./.memark/bin/cli.js init
 ```
-Auto-triggers full maintenance every 10 sessions (customizable: `--threshold 5`).
 
-### 4. Emergency Maintenance
+## 3. Hook Commands (Automatic)
+
+Bind these commands in your Claude CLI hook points:
+
+- `session_start`:
+  `node ./.memark/bin/cli.js rebuild-index`
+- `after_memory_read`:
+  `node ./.memark/bin/cli.js touch-memory --file <type/file.md>`
+- `session_end`:
+  `node ./.memark/bin/cli.js session-end --threshold 10`
+- `manual_maintenance`:
+  `node ./.memark/bin/cli.js maintain`
+
+## 4. Example Hook Script
+
 ```bash
-npx agent-memory maintain
-```
-Run full TTL→decay→archive pass manually if needed.
+#!/usr/bin/env bash
+set -e
 
-## Node.js Example
+event="$1"
+file="$2"
 
-```javascript
-const { execSync } = require('child_process');
-const fs = require('fs');
-
-class MemoryAgent {
-  initSession() {
-    execSync('npx agent-memory rebuild-index', { stdio: 'inherit' });
-    const memory = fs.readFileSync('memory/MEMORY.md', 'utf8');
-    return memory;
-  }
-
-  readMemory(path) {
-    execSync(`npx agent-memory touch-memory --file ${path}`, { stdio: 'inherit' });
-    return fs.readFileSync(path, 'utf8');
-  }
-
-  endSession() {
-    execSync('npx agent-memory session-end', { stdio: 'inherit' });
-  }
-}
-
-const agent = new MemoryAgent();
-agent.initSession();
-// ... work with memories ...
-agent.endSession();
+case "$event" in
+  session_start)
+    node ./.memark/bin/cli.js rebuild-index
+    ;;
+  after_memory_read)
+    node ./.memark/bin/cli.js touch-memory --file "$file"
+    ;;
+  session_end)
+    node ./.memark/bin/cli.js session-end --threshold 10
+    ;;
+  maintain)
+    node ./.memark/bin/cli.js maintain
+    ;;
+esac
 ```
 
-## Python Example
-
-```python
-import subprocess
-from pathlib import Path
-
-class MemoryAgent:
-    def init_session(self):
-        subprocess.run(['npx', 'agent-memory', 'rebuild-index'], check=True)
-        return Path('memory/MEMORY.md').read_text()
-    
-    def read_memory(self, path):
-        subprocess.run(['npx', 'agent-memory', 'touch-memory', '--file', path], check=True)
-        return Path(path).read_text()
-    
-    def end_session(self):
-        subprocess.run(['npx', 'agent-memory', 'session-end'], check=True)
-
-agent = MemoryAgent()
-agent.init_session()
-# ... work with memories ...
-agent.end_session()
-```
-
-## VS Code / Claude Code Integration
-
-Add to `.vscode/tasks.json`:
-
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Rebuild memory",
-      "type": "shell",
-      "command": "npx agent-memory rebuild-index"
-    }
-  ]
-}
-```
-
-Or in your `CLAUDE.md`:
+## 5. CLAUDE.md Snippet
 
 ```markdown
-# Session Init
-- Run: `npx agent-memory rebuild-index`
-- Read: `memory/MEMORY.md` and `memory/AGENT-INSTRUCTIONS.md`
+# Memory Hook Policy
 
-# Session End
-- Run: `npx agent-memory session-end`
+- Hooks are configured to run memark automatically.
+- Do not run `npm`/`npx` manually for memory operations.
+
+Session start: rebuild index and read `memory/MEMORY.md`.
+During work: hook tracks memory reads via `touch-memory`.
+Session end: hook runs `session-end --threshold 10`.
 ```
 
 ## Memory File Format
