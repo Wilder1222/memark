@@ -7,7 +7,7 @@ _Last updated: {{DATE}} | Total: 0 memories_
 > 2. Match relevant memory entries based on current task keywords and context
 > 3. Only load specific memory files relevant to the current task (avoid loading all)
 > 4. Tags live in each memory file's frontmatter, not in this index
-> 5. After changing memory files, run `npx agent-memory rebuild-index`
+> 5. After changing memory files, run `node ./.memark/bin/cli.js rebuild-index`
 > 6. Full operation protocol: see `AGENT-INSTRUCTIONS.md`
 
 ---
@@ -53,5 +53,5 @@ _User corrections or confirmations of Agent behavior_
 - This index enforces a hard 200-line cap and may omit lowest-confidence entries from index view
 - Prune order: lowest confidence first; ties resolved by section order user -> project -> patterns -> feedback
 - Full maintenance protocol: see `MAINTENANCE.md`
-- Use `npx agent-memory session-end` to increment maintenance counter after each work session
-- Run `npx agent-memory maintain` manually when you want immediate decay/archive behavior
+- Use `node ./.memark/bin/cli.js session-end` to increment maintenance counter after each work session
+- Run `node ./.memark/bin/cli.js maintain` manually when you want immediate decay/archive behavior

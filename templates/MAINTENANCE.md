@@ -8,9 +8,9 @@ This document defines the current manual maintenance behavior implemented by the
 
 | Trigger | When | What to run |
 |---------|------|-------------|
-| File edits | After creating/updating memory files | `npx agent-memory rebuild-index` |
-| Manual | Whenever the user or agent chooses | `npx agent-memory maintain` |
-| Session wrap-up | End of each work session | `npx agent-memory session-end` |
+| File edits | After creating/updating memory files | `node ./.memark/bin/cli.js rebuild-index` |
+| Manual | Whenever the user or agent chooses | `node ./.memark/bin/cli.js maintain` |
+| Session wrap-up | End of each work session | `node ./.memark/bin/cli.js session-end` |
 
 ---
 
@@ -19,14 +19,14 @@ This document defines the current manual maintenance behavior implemented by the
 Run after creating or editing memory files:
 
 1. Ensure memory files contain valid frontmatter
-2. Run `npx agent-memory rebuild-index`
+2. Run `node ./.memark/bin/cli.js rebuild-index`
 3. Review `MEMORY.md` for stale summaries or broken links
 
 **Completion check:** `MEMORY.md` reflects current state.
 
 ## Manual Maintenance Pass
 
-Run `npx agent-memory maintain` when you want the CLI to apply its current maintenance rules.
+Run `node ./.memark/bin/cli.js maintain` when you want the CLI to apply its current maintenance rules.
 
 ### Phase 1: TTL Archival
 
