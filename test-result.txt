@@ -1,0 +1,13 @@
+
+> agent-memory@1.0.0 test
+> node tests/run-tests.js
+
+PASS init skips example memories
+PASS touch-memory supports both slash styles
+PASS session-end triggers maintain by threshold
+PASS maintain applies bucketed decay
+PASS rebuild-index enforces hard 200-line cap
+PASS frontmatter validation warnings are emitted
+PASS npm pack dry-run succeeds
+
+7/7 tests passed.
