@@ -7,42 +7,29 @@ const { touchMemory } = require('../lib/touch-memory');
 const { sessionEnd } = require('../lib/session-end');
 
 const args = process.argv.slice(2);
-const command = args[0];
-const flags = args.slice(1);
-const wantsHelp = !command || command === '--help' || command === '-h' || flags.includes('--help') || flags.includes('-h');
+const firstArg = args[0];
+const command = !firstArg || firstArg.startsWith('-') ? 'install' : firstArg;
+const flags = !firstArg || firstArg.startsWith('-') ? args : args.slice(1);
+const wantsHelp = firstArg === '--help' || firstArg === '-h' || flags.includes('--help') || flags.includes('-h');
 
 const help = `
 memark — Local memory system for Claude CLI and Codex CLI
 
 USAGE:
-  memark <command> [options]
+  npx github:Wilder1222/memark
+  npx github:Wilder1222/memark install [--force]
 
-COMMANDS:
-  install           Install memark runtime into ./.memark and update CLAUDE.md
-  init              Initialize memory system in ./memory/
-  init --global     Initialize in ~/.claude/memory/ (global agent memory)
-  maintain          Run manual maintenance (TTL archive, decay, rebuild index)
-  rebuild-index     Rebuild MEMORY.md index from existing memory files only
-  touch-memory      Update last_accessed and access_count for one memory file
-  session-end       Increment maintenance counter and optionally trigger maintain
+PUBLIC COMMAND:
+  install           Install memark runtime into ./.memark, init memory, and update CLAUDE.md
 
 OPTIONS:
-  --global          Use global memory directory (~/.claude/memory/)
-  --path <dir>      Use custom memory directory
-  --file <path>     Memory file relative to memory root (for touch-memory)
-  --threshold <n>   Session count threshold to auto-run maintain (session-end)
   --force           Overwrite existing memory directory
   --help, -h        Show this help
 
 EXAMPLES:
-  npx github:Wilder1222/memark install  # install runtime in current project
-  memark init                    # project-level memory
-  memark init --global           # global agent memory
-  memark maintain                # run maintenance on ./memory/
-  memark maintain --global       # run maintenance on global memory
-  memark rebuild-index --path ./custom/memory
-  memark touch-memory --file user/my-preference.md
-  memark session-end --threshold 10
+  npx github:Wilder1222/memark
+  npx github:Wilder1222/memark install
+  npx github:Wilder1222/memark install --force
 `;
 
 if (wantsHelp) {

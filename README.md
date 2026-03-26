@@ -8,7 +8,8 @@ Memark stores long-term memory in plain Markdown files and is designed to run au
 
 ```bash
 # Project-level install (recommended)
-npx github:Wilder1222/memark install
+npx github:Wilder1222/memark
+
 ```
 
 What this does automatically:

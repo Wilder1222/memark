@@ -191,10 +191,19 @@ function testInstallCreatesDotMemarkAndUpdatesClaudeMd() {
     assert.strictEqual(occurrences, 1, 'install should update CLAUDE.md block in place (no duplicate blocks)');
 }
 
+function testNoArgDefaultsToInstall() {
+    const dir = makeTempDir('install-default');
+    const res = runNode([], dir);
+    assert.strictEqual(res.code, 0, `default (no-arg) run should install: ${res.combined}`);
+    assert(fs.existsSync(path.join(dir, '.memark', 'bin', 'cli.js')), 'no-arg run should install .memark runtime');
+    assert(fs.existsSync(path.join(dir, 'CLAUDE.md')), 'no-arg run should create CLAUDE.md');
+}
+
 function run() {
     const tests = [
         ['init skips example memories', testInitSkipsExamples],
         ['install writes .memark and CLAUDE.md block', testInstallCreatesDotMemarkAndUpdatesClaudeMd],
+        ['no-arg defaults to install', testNoArgDefaultsToInstall],
         ['touch-memory supports both slash styles', testTouchMemorySupportsPosixAndWindowsPath],
         ['session-end triggers maintain by threshold', testSessionEndThresholdTriggersMaintain],
         ['maintain applies bucketed decay', testMaintainBucketDecay],
