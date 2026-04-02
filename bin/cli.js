@@ -5,6 +5,7 @@ const { install } = require('../lib/install');
 const { maintain } = require('../lib/maintain');
 const { touchMemory } = require('../lib/touch-memory');
 const { sessionEnd } = require('../lib/session-end');
+const { setupHooks } = require('../lib/setup-hooks');
 
 const args = process.argv.slice(2);
 const firstArg = args[0];
@@ -19,8 +20,9 @@ USAGE:
   npx github:Wilder1222/memark
   npx github:Wilder1222/memark install [--force]
 
-PUBLIC COMMAND:
-  install           Install memark runtime into ./.memark, init memory, and update CLAUDE.md
+PUBLIC COMMANDS:
+  install           Install memark runtime into ./.memark, init memory, configure hooks, and update CLAUDE.md
+  setup-hooks       Configure Claude Code hooks in .claude/settings.json (without full reinstall)
 
 OPTIONS:
   --force           Overwrite existing memory directory
@@ -66,6 +68,10 @@ switch (command) {
         break;
     case 'session-end':
         sessionEnd({ global: isGlobal, customPath, threshold: thresholdArg });
+        break;
+    case 'setup-hooks':
+        setupHooks();
+        console.log('✓ Claude Code hooks configured in .claude/settings.json');
         break;
     default:
         console.error(`Unknown command: ${command}`);

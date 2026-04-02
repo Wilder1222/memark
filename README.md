@@ -9,51 +9,17 @@ Memark stores long-term memory in plain Markdown files and is designed to run au
 ```bash
 # Project-level install (recommended)
 npx github:Wilder1222/memark
-
 ```
 
 What this does automatically:
 - Installs runtime files to `./.memark/`
 - Creates `./memory/` (if missing)
-- Creates or updates `./CLAUDE.md` with required memark prompt block
+- Creates or updates `./CLAUDE.md` with memark prompt block
+- Configures Claude Code hooks in `.claude/settings.json`
 
-## Hook-First Workflow
-
-In Claude CLI, configure hooks so memory operations run automatically.
-
-Recommended lifecycle:
-
-1. Session start:
-   - `node ./.memark/bin/cli.js rebuild-index`
-2. After reading a memory file:
-   - `node ./.memark/bin/cli.js touch-memory --file <type/file.md>`
-3. Session end:
-   - `node ./.memark/bin/cli.js session-end --threshold 10`
-4. Manual fallback:
-   - `node ./.memark/bin/cli.js maintain`
-
-## CLAUDE.md Snippet (Copy Directly)
-
-```markdown
-# Memory Hook Policy
-
-This project uses memark via Claude CLI hooks.
-Memory operations are triggered automatically by hooks.
-
-Session start hook:
-- node ./.memark/bin/cli.js rebuild-index
-- read memory/MEMORY.md
-- read memory/AGENT-INSTRUCTIONS.md
-
-After memory read hook:
-- node ./.memark/bin/cli.js touch-memory --file <type/file.md>
-
-Session end hook:
-- node ./.memark/bin/cli.js session-end --threshold 10
-
-Manual maintenance fallback:
-- node ./.memark/bin/cli.js maintain
-```
+After install, every Claude session will automatically:
+1. **Session start** — rebuild memory index and inject it into Claude's context
+2. **Session end** — run maintenance (decay, archive) on a threshold schedule
 
 ## What Gets Created
 
@@ -102,25 +68,27 @@ Validation rules:
 ## Commands Reference
 
 ```bash
-# one-time project install
+# one-time project install (configures everything)
 npx github:Wilder1222/memark install
 
-# runtime commands used by hooks
+# reconfigure hooks only (no full reinstall)
+node ./.memark/bin/cli.js setup-hooks
+
+# manual commands
 node ./.memark/bin/cli.js rebuild-index
 node ./.memark/bin/cli.js touch-memory --file user/my-preference.md
 node ./.memark/bin/cli.js session-end --threshold 10
 node ./.memark/bin/cli.js maintain
 ```
 
-## Scope
+## How It Works
 
-V1 supports explicit command-driven memory lifecycle:
+After install, `.claude/settings.json` contains hooks that fire automatically:
 
-- init
-- rebuild-index
-- touch-memory
-- session-end
-- maintain
+- **SessionStart** (`startup|resume|clear|compact`) — runs `rebuild-index` and pipes `MEMORY.md` into Claude's context via stderr
+- **SessionEnd** — runs `session-end --threshold 10` to track sessions and trigger periodic maintenance
+
+No manual hook configuration needed.
 
 ## License
 

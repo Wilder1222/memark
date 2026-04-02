@@ -42,7 +42,7 @@ When you learn something worth remembering:
    - [Memory Name](type/filename.md) — one-line summary [confidence: 0.9]
    ```
 
-5. **Refresh the index explicitly** — run `npx agent-memory rebuild-index` after creating or editing memory files.
+5. **Refresh the index explicitly** — run `node ./.memark/bin/cli.js rebuild-index` after creating or editing memory files.
 
 ---
 
@@ -96,9 +96,9 @@ When you have created or updated memory files:
 1. **Identify new learnings** — what did you learn about the user, project, or patterns?
 2. **Write new memories** — create files for significant new information
 3. **Update existing memories** — if you learned something that refines an existing memory, update it
-4. **Touch memories you read** — run `npx agent-memory touch-memory --file <type/file.md>`
-5. **Run `npx agent-memory session-end`** — increment maintenance counter and refresh index
-6. **Run `npx agent-memory maintain` manually** — use it when you want an immediate full maintenance pass
+4. **Touch memories you read** — run `node ./.memark/bin/cli.js touch-memory --file <type/file.md>`
+5. **Run `node ./.memark/bin/cli.js session-end`** — increment maintenance counter and refresh index
+6. **Run `node ./.memark/bin/cli.js maintain` manually** — use it when you want an immediate full maintenance pass
 
 ## Current v1 Limits
 

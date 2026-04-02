@@ -159,6 +159,51 @@ function testValidationWarnings() {
     assert(res.combined.includes('Validation warnings'), 'should print validation warnings for invalid frontmatter');
 }
 
+function testSetupHooksConfiguresSettings() {
+    const dir = makeTempDir('setup-hooks');
+
+    // First install so .memark exists
+    const installRes = runNode(['install'], dir);
+    assert.strictEqual(installRes.code, 0, `install failed: ${installRes.combined}`);
+
+    // Verify .claude/settings.json was created with hooks
+    const settingsPath = path.join(dir, '.claude', 'settings.json');
+    assert(fs.existsSync(settingsPath), '.claude/settings.json should exist after install');
+
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert(settings.hooks, 'settings should have hooks');
+    assert(settings.hooks.SessionStart, 'should have SessionStart hook');
+    assert(settings.hooks.SessionEnd, 'should have SessionEnd hook');
+    assert(settings.hooks.SessionStart[0].matcher === 'startup|resume|clear|compact',
+        'SessionStart matcher should cover all scenarios');
+
+    // Run setup-hooks again with existing settings — should not duplicate
+    const cliInDir = path.join(dir, '.memark', 'bin', 'cli.js');
+    const res2 = spawnSync(process.execPath, [cliInDir, 'setup-hooks'], {
+        cwd: dir,
+        encoding: 'utf8',
+    });
+    assert.strictEqual(res2.status, 0, `setup-hooks failed: ${res2.stdout}${res2.stderr}`);
+
+    const settings2 = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert.strictEqual(settings2.hooks.SessionStart.length, 1, 'should not duplicate SessionStart hooks');
+    assert.strictEqual(settings2.hooks.SessionEnd.length, 1, 'should not duplicate SessionEnd hooks');
+
+    // Test merging with existing non-memark hooks
+    settings2.hooks.PreToolUse = [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo test' }] }];
+    fs.writeFileSync(settingsPath, JSON.stringify(settings2, null, 2), 'utf8');
+
+    const res3 = spawnSync(process.execPath, [cliInDir, 'setup-hooks'], {
+        cwd: dir,
+        encoding: 'utf8',
+    });
+    assert.strictEqual(res3.status, 0, `setup-hooks merge failed: ${res3.stdout}${res3.stderr}`);
+
+    const settings3 = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    assert(settings3.hooks.PreToolUse, 'should preserve existing non-memark hooks');
+    assert.strictEqual(settings3.hooks.PreToolUse.length, 1, 'should not modify non-memark hooks');
+}
+
 function testNpmPackDryRun() {
     const result = runShell('npm pack --dry-run');
     assert.strictEqual(result.status, 0, `npm pack --dry-run failed: ${result.stdout}\n${result.stderr}`);
@@ -209,6 +254,7 @@ function run() {
         ['maintain applies bucketed decay', testMaintainBucketDecay],
         ['rebuild-index enforces hard 200-line cap', testRebuildIndexHardCap],
         ['frontmatter validation warnings are emitted', testValidationWarnings],
+        ['setup-hooks configures .claude/settings.json', testSetupHooksConfiguresSettings],
         ['npm pack dry-run succeeds', testNpmPackDryRun],
     ];
 
