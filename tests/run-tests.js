@@ -29,7 +29,7 @@ function runShell(command, cwd = repoRoot) {
 }
 
 function makeTempDir(name) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `agent-memory-${name}-`));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `memark-${name}-`));
     return dir;
 }
 
@@ -37,14 +37,11 @@ function writeMemory(filePath, overrides = {}) {
     const content = [
         '---',
         `name: ${overrides.name || 'Test Memory'}`,
-        `type: ${overrides.type || 'user'}`,
         `tags: ${overrides.tags || '[test]'}`,
         `confidence: ${overrides.confidence !== undefined ? overrides.confidence : 0.9}`,
         `created: ${overrides.created || '2026-01-01'}`,
         `last_accessed: ${overrides.last_accessed || '2026-01-01'}`,
         `access_count: ${overrides.access_count !== undefined ? overrides.access_count : 1}`,
-        `ttl: ${overrides.ttl !== undefined ? overrides.ttl : 'null'}`,
-        `related: ${overrides.related || '[]'}`,
         '---',
         '',
         overrides.body || 'Memory body.',
@@ -56,33 +53,33 @@ function writeMemory(filePath, overrides = {}) {
     fs.writeFileSync(filePath, content, 'utf8');
 }
 
-function testInitSkipsExamples() {
+function testInitCreatesTemplates() {
     const dir = makeTempDir('init');
     const res = runNode(['init', '--path', dir]);
     assert.strictEqual(res.code, 0, `init failed: ${res.combined}`);
 
-    const userFiles = fs.readdirSync(path.join(dir, 'user'));
-    assert(!userFiles.some(f => /^example-.*\.md$/i.test(f)), 'example files should not be copied to user/');
+    assert(fs.existsSync(path.join(dir, 'MEMORY.md')), 'MEMORY.md should be created');
+    assert(fs.existsSync(path.join(dir, 'AGENT-INSTRUCTIONS.md')), 'AGENT-INSTRUCTIONS.md should be created');
+    assert(fs.existsSync(path.join(dir, 'TEMPLATE.md')), 'TEMPLATE.md should be created');
 
-    const projectFiles = fs.readdirSync(path.join(dir, 'project'));
-    assert(!projectFiles.some(f => /^example-.*\.md$/i.test(f)), 'example files should not be copied to project/');
-
-    const feedbackFiles = fs.readdirSync(path.join(dir, 'feedback'));
-    assert(!feedbackFiles.some(f => /^example-.*\.md$/i.test(f)), 'example files should not be copied to feedback/');
+    // No subdirectories should exist
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const dirs = entries.filter(e => e.isDirectory());
+    assert.strictEqual(dirs.length, 0, 'init should not create subdirectories');
 }
 
-function testTouchMemorySupportsPosixAndWindowsPath() {
+function testTouchMemory() {
     const dir = makeTempDir('touch');
     assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
 
-    const memPath = path.join(dir, 'user', 'pref.md');
+    const memPath = path.join(dir, 'pref.md');
     writeMemory(memPath, { access_count: 0, last_accessed: '2026-01-01' });
 
-    let res = runNode(['touch-memory', '--path', dir, '--file', 'user/pref.md']);
-    assert.strictEqual(res.code, 0, `touch-memory (posix path) failed: ${res.combined}`);
+    let res = runNode(['touch-memory', '--path', dir, '--file', 'pref.md']);
+    assert.strictEqual(res.code, 0, `touch-memory failed: ${res.combined}`);
 
-    res = runNode(['touch-memory', '--path', dir, '--file', 'user\\pref.md']);
-    assert.strictEqual(res.code, 0, `touch-memory (windows path) failed: ${res.combined}`);
+    res = runNode(['touch-memory', '--path', dir, '--file', 'pref.md']);
+    assert.strictEqual(res.code, 0, `touch-memory second call failed: ${res.combined}`);
 
     const updated = fs.readFileSync(memPath, 'utf8');
     assert(updated.includes('access_count: 2'), 'access_count should be incremented twice');
@@ -92,7 +89,7 @@ function testSessionEndThresholdTriggersMaintain() {
     const dir = makeTempDir('session-end');
     assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
 
-    writeMemory(path.join(dir, 'user', 's.md'));
+    writeMemory(path.join(dir, 'test-mem.md'));
 
     let res = runNode(['session-end', '--path', dir, '--threshold', '2']);
     assert.strictEqual(res.code, 0, `session-end #1 failed: ${res.combined}`);
@@ -109,28 +106,39 @@ function testMaintainBucketDecay() {
     const dir = makeTempDir('decay');
     assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
 
-    writeMemory(path.join(dir, 'user', 'old.md'), {
+    writeMemory(path.join(dir, 'old.md'), {
         confidence: 1.0,
         last_accessed: '2025-12-21',
-        ttl: 'null',
     });
 
     const res = runNode(['maintain', '--path', dir]);
     assert.strictEqual(res.code, 0, `maintain failed: ${res.combined}`);
-    const updated = fs.readFileSync(path.join(dir, 'user', 'old.md'), 'utf8');
-    assert(updated.includes('confidence: 0.51'), 'confidence should decay to 0.51 for 95 days (3 buckets)');
+    const updated = fs.readFileSync(path.join(dir, 'old.md'), 'utf8');
+    assert(updated.includes('confidence: 0.51'), 'confidence should decay to 0.51 for ~95 days (3 buckets)');
+}
+
+function testMaintainRemovesLowConfidence() {
+    const dir = makeTempDir('remove');
+    assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
+
+    writeMemory(path.join(dir, 'weak.md'), {
+        confidence: 0.1,
+        last_accessed: '2026-03-01',
+    });
+
+    const res = runNode(['maintain', '--path', dir]);
+    assert.strictEqual(res.code, 0, `maintain failed: ${res.combined}`);
+    assert(!fs.existsSync(path.join(dir, 'weak.md')), 'low-confidence memory should be removed');
 }
 
 function testRebuildIndexHardCap() {
     const dir = makeTempDir('cap');
     assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
 
-    const feedbackDir = path.join(dir, 'feedback');
     for (let i = 1; i <= 240; i++) {
         const confidence = Math.max(0, Math.round(((240 - i) / 240) * 100) / 100);
-        writeMemory(path.join(feedbackDir, `bulk-${i}.md`), {
+        writeMemory(path.join(dir, `bulk-${i}.md`), {
             name: `Bulk ${i}`,
-            type: 'feedback',
             confidence,
             last_accessed: '2026-03-01',
         });
@@ -148,8 +156,7 @@ function testValidationWarnings() {
     const dir = makeTempDir('validation');
     assert.strictEqual(runNode(['init', '--path', dir]).code, 0, 'init failed');
 
-    writeMemory(path.join(dir, 'user', 'bad.md'), {
-        type: 'invalid_type',
+    writeMemory(path.join(dir, 'bad.md'), {
         confidence: 1.5,
         last_accessed: 'yesterday',
     });
@@ -162,11 +169,9 @@ function testValidationWarnings() {
 function testSetupHooksConfiguresSettings() {
     const dir = makeTempDir('setup-hooks');
 
-    // First install so .memark exists
     const installRes = runNode(['install'], dir);
     assert.strictEqual(installRes.code, 0, `install failed: ${installRes.combined}`);
 
-    // Verify .claude/settings.json was created with hooks
     const settingsPath = path.join(dir, '.claude', 'settings.json');
     assert(fs.existsSync(settingsPath), '.claude/settings.json should exist after install');
 
@@ -177,7 +182,7 @@ function testSetupHooksConfiguresSettings() {
     assert(settings.hooks.SessionStart[0].matcher === 'startup|resume|clear|compact',
         'SessionStart matcher should cover all scenarios');
 
-    // Run setup-hooks again with existing settings — should not duplicate
+    // Run setup-hooks again — should not duplicate
     const cliInDir = path.join(dir, '.memark', 'bin', 'cli.js');
     const res2 = spawnSync(process.execPath, [cliInDir, 'setup-hooks'], {
         cwd: dir,
@@ -218,8 +223,8 @@ function testInstallCreatesDotMemarkAndUpdatesClaudeMd() {
     const installedCli = path.join(dir, '.memark', 'bin', 'cli.js');
     assert(fs.existsSync(installedCli), 'install should place runtime under .memark/bin/cli.js');
 
-    const memoryIndex = path.join(dir, 'memory', 'MEMORY.md');
-    assert(fs.existsSync(memoryIndex), 'install should initialize memory workspace');
+    const memoryIndex = path.join(dir, '.memark', 'MEMORY.md');
+    assert(fs.existsSync(memoryIndex), 'install should create MEMORY.md in .memark/');
 
     const claudePath = path.join(dir, 'CLAUDE.md');
     assert(fs.existsSync(claudePath), 'install should create CLAUDE.md when missing');
@@ -246,12 +251,13 @@ function testNoArgDefaultsToInstall() {
 
 function run() {
     const tests = [
-        ['init skips example memories', testInitSkipsExamples],
+        ['init creates flat memory directory', testInitCreatesTemplates],
         ['install writes .memark and CLAUDE.md block', testInstallCreatesDotMemarkAndUpdatesClaudeMd],
         ['no-arg defaults to install', testNoArgDefaultsToInstall],
-        ['touch-memory supports both slash styles', testTouchMemorySupportsPosixAndWindowsPath],
+        ['touch-memory updates access metadata', testTouchMemory],
         ['session-end triggers maintain by threshold', testSessionEndThresholdTriggersMaintain],
         ['maintain applies bucketed decay', testMaintainBucketDecay],
+        ['maintain removes low-confidence memories', testMaintainRemovesLowConfidence],
         ['rebuild-index enforces hard 200-line cap', testRebuildIndexHardCap],
         ['frontmatter validation warnings are emitted', testValidationWarnings],
         ['setup-hooks configures .claude/settings.json', testSetupHooksConfiguresSettings],
